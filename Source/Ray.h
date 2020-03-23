@@ -28,7 +28,7 @@ public:
 
     // Computes a point along the ray at the specified distance.
     // NOTE: The distance is a multiple of the direction length.
-    const Vec3 Point(float t) const { return m_origin + m_direction * t; }
+    const Vec3 At(float t) const { return m_origin + m_direction * t; }
 
 private:
     Vec3 m_origin;

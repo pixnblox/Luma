@@ -10,8 +10,14 @@
 using namespace Luma;
 
 // Computes the radiance incident along the specified ray, for the specified element.
-Vec3 Radiance(const Ray& ray, const Element& element)
+Vec3 Radiance(const Ray& ray, const Element& element, int depth)
 {
+    // If the trace depth has been exhausted, simply return black.
+    if (depth == 0)
+    {
+        return Vec3();
+    }
+
     // Intersect the sphere with the ray, and shade with the hit record if there was an
     // intersection. Otherwise shade with a (vertical) background gradient.
     Vec3 radiance;
@@ -20,20 +26,26 @@ Vec3 Radiance(const Ray& ray, const Element& element)
     {
         // Generate a random direction in the hemisphere above the normal.
         Vec3 direction = RandomDirection(hit.normal);
+        float cosTheta = dot(hit.normal, direction);
 
-        // Compute the radiance incident from the random direction, and scale by the material color.
-        // This renders global illumination (bounced light) which is very difficult to achieve with
-        // rasterization on GPUs.
-        // NOTE: This is recursive, but will eventually terminate when a ray misses geometry, at
-        // least for the geometry used here. Normally the tracing should be terminated after a
-        // certain recursion level. A ray offset is used to avoid self-intersection.
+        // Compute the Lambertian BRDF, i.e. the amount of light reflected by the material.
+        static const Vec3 materialColor(Vec3(1.0f, 1.0f, 1.0f).Linearize());
+        Vec3 brdf = materialColor / M_PI_F;
+
+        // Compute the radiance incident from the direction, i.e. the incident light.
+        // NOTE: As this is recursive, this renders global illumination (bounced light) which is
+        // very difficult to achieve with rasterization on GPUs.
+        // NOTE: A ray offset is used to avoid self-intersection.
         static const float RAY_OFFSET = 1e-4f;
-        static const Vec3 materialColor(Vec3(0.75f, 0.75f, 0.75f).Linearize());
-        radiance = materialColor * Radiance(Ray(hit.position, direction, RAY_OFFSET), element);
+        Ray ray(hit.position, direction, RAY_OFFSET);
+        Vec3 light = Radiance(ray, element, depth - 1);
+
+        // Compute the outgoing radiance, as defined by the rendering equation.
+        radiance = brdf * light * cosTheta;
 
         // AMBIENT OCCLUSION: Uncomment this to render ambient occlusion, i.e. the amount by which a
         // point can see the environment.
-        // radiance = element.Intersect(Ray(hit.position, direction, RAY_OFFSET), hit) ? Vec3(0.0f, 0.0f, 0.0f) : Vec3(1.0f, 1.0f, 1.0f);
+        // radiance = element.Intersect(ray, hit) ? Vec3(0.0f, 0.0f, 0.0f) : Vec3(1.0f, 1.0f, 1.0f);
 
         // DIRECT LIGHTING: Uncomment this to perform simple direct shading and shadowing with a
         // directional light.
@@ -96,7 +108,8 @@ void Render(
 
                 // Compute a color for the ray, i.e. the scene radiance from that direction and add
                 // it to the accumulated radiance.
-                radiance += ::Radiance(ray, element);
+                static const int MAX_DEPTH = 10;
+                radiance += ::Radiance(ray, element, MAX_DEPTH);
             }
 
             // Compute the average of the radiance samples to yield the pixel radiance.
@@ -150,12 +163,12 @@ int main()
     // size to make it easier to see the individual pixels and for faster rendering. The settings
     // here take about 5 seconds to render with a Debug build, but only about 200 ms with a Release
     // build on a Core i7-8700 CPU.
-    const uint8_t SCALE = 16;
-    const uint16_t OUTPUT_WIDTH = 3840;
-    const uint16_t OUTPUT_HEIGHT = 2160;
-    const uint16_t WIDTH = OUTPUT_WIDTH / SCALE;
-    const uint16_t HEIGHT = OUTPUT_HEIGHT / SCALE;
-    const uint16_t SPP = 16;
+    static const uint8_t SCALE = 4;
+    static const uint16_t OUTPUT_WIDTH = 3840;
+    static const uint16_t OUTPUT_HEIGHT = 2160;
+    static const uint16_t WIDTH = OUTPUT_WIDTH / SCALE;
+    static const uint16_t HEIGHT = OUTPUT_HEIGHT / SCALE;
+    static const uint16_t SPP = 100;
     Image image(WIDTH, HEIGHT);
 
     // Create a camera.

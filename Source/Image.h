@@ -8,20 +8,26 @@ namespace Luma {
 class Image
 {
 public:
+    // Constructor.
     Image(uint16_t width, uint16_t height) : m_width(width), m_height(height)
     {
+        // Create the image buffer.
         size_t bufferSize = m_width * m_height * NUM_COMPONENTS;
         m_pImageData = new uint8_t[bufferSize];
     }
 
+    // Destructor.
     ~Image()
     {
         delete[] m_pImageData;
         m_pImageData = nullptr;
     }
 
+    // Returns the image data buffer.
     uint8_t* GetImageData() { return m_pImageData; }
 
+    // Saves the image as a PNG file to the specified path, with an optional scale to enlarge the
+    // image.
     void SavePNG(string sFilePath, uint8_t scale = 1)
     {
         uint8_t* pImageData = m_pImageData;

@@ -53,7 +53,7 @@ public:
         // The sphere was hit, so update the hit record with the t parameter, hit position, and
         // (normalized) normal at the hit position.
         hit.t = t;
-        hit.position = ray.Point(t);
+        hit.position = ray.At(t);
         hit.normal = (hit.position - m_center) / m_radius;
 
         return true;

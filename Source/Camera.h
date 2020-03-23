@@ -12,12 +12,12 @@ public:
     // Constructor.
     Camera(float aspect) : m_aspect(aspect) {}
 
-    // Compute a ray from the camera with the specified U (horizontal) and V (vertical) offsets in
+    // Computes a ray from the camera with the specified U (horizontal) and V (vertical) offsets in
     // the camera image plane.
     Ray GetRay(float u, float v) const
     {
         // Define the camera with an eye position at the origin, and facing the -Z axis.
-        // TODO: This will be expanded in the future.
+        // TODO: The camera is currently hardcoded, but will later support standard properties.
         static Vec3 origin(0.0f, 0.0f, 0.0f);
         static Vec3 start(-m_aspect, -1.0f, -1.0f);
         static float viewWidth = m_aspect * 2.0f;

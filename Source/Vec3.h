@@ -19,6 +19,7 @@ public:
     float b() const { return m_val[2]; }
 
     // Operator overloads.
+    Vec3 operator-() const { return Vec3(-m_val[0], -m_val[1], -m_val[2]); }
     Vec3& operator+=(const Vec3& a) { m_val[0] += a.m_val[0]; m_val[1] += a.m_val[1]; m_val[2] += a.m_val[2]; return *this; }
     Vec3& operator-=(const Vec3& a) { m_val[0] -= a.m_val[0]; m_val[1] -= a.m_val[1]; m_val[2] -= a.m_val[2]; return *this; }
     Vec3& operator*=(float a) { m_val[0] *= a; m_val[1] *= a; m_val[2] *= a; return *this; }
@@ -66,37 +67,37 @@ inline float dot(const Vec3& a, const Vec3& b)
     return a.x() * b.x() + a.y() * b.y() + a.z() * b.z();
 }
 
-// Overload the + operator for two vectors.
+// Overloads the + operator for two vectors.
 inline Vec3 operator+(const Vec3& a, const Vec3& b)
 {
     return Vec3(a.x() + b.x(), a.y() + b.y(), a.z() + b.z());
 }
 
-// Overload the - operator for two vectors.
+// Overloads the - operator for two vectors.
 inline Vec3 operator-(const Vec3& a, const Vec3& b)
 {
     return Vec3(a.x() - b.x(), a.y() - b.y(), a.z() - b.z());
 }
 
-// Overload the * operator for two vectors.
+// Overloads the * operator for two vectors.
 inline Vec3 operator*(const Vec3& a, const Vec3& b)
 {
     return Vec3(a.x() * b.x(), a.y() * b.y(), a.z() * b.z());
 }
 
-// Overload the * operator for a scalar and a vector.
+// Overloads the * operator for a scalar and a vector.
 inline Vec3 operator*(float a, const Vec3& b)
 {
     return Vec3(a * b.x(), a * b.y(), a * b.z());
 }
 
-// Overload the * operator for a vector and a scalar.
+// Overloads the * operator for a vector and a scalar.
 inline Vec3 operator*(const Vec3& a, float b)
 {
     return Vec3(a.x() * b, a.y() * b, a.z() * b);
 }
 
-// Overload the / operator for a vector and a scalar.
+// Overloads the / operator for a vector and a scalar.
 inline Vec3 operator/(const Vec3& a, float b)
 {
     return Vec3(a.x() / b, a.y() / b, a.z() / b);

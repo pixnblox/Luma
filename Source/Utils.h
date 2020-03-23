@@ -2,7 +2,7 @@
 
 namespace Luma {
 
-// Linearly interpolate between two values.
+// Linearly interpolates between two values.
 template<class T>
 inline T Lerp(T a, T b, float t)
 {
@@ -22,21 +22,29 @@ float Random()
 // Generates a random direction in the hemisphere above the specified normal.
 Vec3 RandomDirection(const Vec3& normal)
 {
-    // NOTE: This is the technique used in "Ray Tracing in One Weekend."
+    // Create a random uniformly distributed point on the unit sphere, i.e. a direction.
+    float u1 = Random();
+    float u2 = Random();
+    float theta = 2.0f * M_PI_F * u1;
+    float phi = acos(1.0f - 2.0f * u2);
+    Vec3 direction(
+        sin(phi) * cos(theta),
+        sin(phi) * sin(theta),
+        cos(phi)
+    );
 
-    // Create a random point inside the unit hemisphere. This is done by using a unit cube, and
-    // and rejecting any points outside the sphere.
-    Vec3 offset;
-    do
+    // Flip the direction if it is on the opposite side of the normal.
+    if (dot(normal, direction) > 0.0)
     {
-        offset = 2.0f * Vec3(Random(), Random(), Random()) - Vec3(1.0f, 1.0f, 1.0f);
+        return direction;
     }
-    while (offset.Length() > 1.0f);
-
-    // Offset the point by the normal to produce a direction.
-    return (normal + offset).Normalize();
+    else
+    {
+        return -direction;
+    }
 }
 
+// Reports the specified progress on the console, as a progress bar.
 void UpdateProgress(float progress)
 {
     const int PROGRESS_SIZE = 75;
