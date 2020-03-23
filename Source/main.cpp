@@ -28,7 +28,7 @@ Vec3 Radiance(const Ray& ray, const Element& element)
         // least for the geometry used here. Normally the tracing should be terminated after a
         // certain recursion level. A ray offset is used to avoid self-intersection.
         static const float RAY_OFFSET = 1e-4f;
-        static const Vec3 materialColor(Vec3(0.5f, 0.5f, 0.5f).Linearize());
+        static const Vec3 materialColor(Vec3(0.75f, 0.75f, 0.75f).Linearize());
         radiance = materialColor * Radiance(Ray(hit.position, direction, RAY_OFFSET), element);
 
         // AMBIENT OCCLUSION: Uncomment this to render ambient occlusion, i.e. the amount by which a
@@ -64,8 +64,14 @@ void Render(
     const Element& element, const Camera& camera, uint8_t* pImageData,
     uint16_t width, uint16_t height, uint16_t samples)
 {
+    // Report the rendering parameters.
+    cout
+        << "Rendering " << width << "x" << height
+        << " at " << samples << " samples per pixel..." << endl;
+
     // Record the start time.
-    auto start = chrono::high_resolution_clock::now();
+    auto startTime = chrono::high_resolution_clock::now();
+    auto prevTime = startTime;
 
     // Iterate the image pixels, starting from the top left (U = 0.0, Y = 1.0) corner, and computing
     // the incident radiance for each one.
@@ -105,19 +111,24 @@ void Render(
         }
 
         // Update the progress if more than one second has elapsed since the last update.
-        auto end = chrono::high_resolution_clock::now();
-        auto elapsed = chrono::duration_cast<chrono::seconds>(end - start).count();
+        auto nextTime = chrono::high_resolution_clock::now();
+        auto elapsed = chrono::duration_cast<chrono::seconds>(nextTime - prevTime).count();
         if (elapsed >= 1)
         {
             float progress = static_cast<float>(height - y) / height;
             UpdateProgress(progress);
-            start = end;
+            prevTime = nextTime;
         }
     }
 
     // Finish progress updates.
     UpdateProgress(1.0f);
     cout << endl;
+
+    // Report the image dimensions and time spent rendering.
+    auto endTime = chrono::high_resolution_clock::now();
+    auto elapsedTime = chrono::duration_cast<chrono::milliseconds>(endTime - startTime).count();
+    cout << setprecision(3) << "Completed in " << elapsedTime / 1000.0f << " seconds." << endl;
 }
 
 // Main entry point.
@@ -152,14 +163,7 @@ int main()
     Camera camera(static_cast<float>(WIDTH) / HEIGHT);
 
     // Render the scene with the camera, to the image buffer with the specified properties.
-    auto start = chrono::high_resolution_clock::now();
     Render(scene, camera, image.GetImageData(), WIDTH, HEIGHT, SPP);
-
-    // Report the image dimensions and time spent rendering.
-    auto end = chrono::high_resolution_clock::now();
-    auto elapsed = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-    cout << setprecision(3) << "Rendered "
-        << WIDTH << "x" << HEIGHT << " in " << elapsed / 1000.0f << " seconds." << endl;
 
     // Save the image.
     image.SavePNG("output.png", SCALE);
