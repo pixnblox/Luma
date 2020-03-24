@@ -7,7 +7,7 @@ class Vec3
 {
 public:
     // Constructors.
-    Vec3() {}
+    Vec3(): m_val{ 0.0f, 0.0f, 0.0f } {}
     Vec3(float x, float y, float z) { m_val[0] = x; m_val[1] = y; m_val[2] = z; }
 
     // Accessors.
@@ -26,16 +26,16 @@ public:
     Vec3& operator/=(float a) { m_val[0] /= a; m_val[1] /= a; m_val[2] /= a; return *this; }
 
     // Computes the length of the vector.
-    float Length() const { return sqrt(x() * x() + y() * y() + z() * z()); }
+    float length() const { return sqrt(x() * x() + y() * y() + z() * z()); }
 
     // Normalizes the vector, i.e. with unit length.
-    Vec3& Normalize() { *this /= Length(); return *this; }
+    Vec3& normalize() { *this /= length(); return *this; }
 
     // Linearizes the vector (as a color) in the sRGB color space.
     // NOTE: Colors should be linearized for rendering computations to work correctly. Linearization
     // has the effect of darkening the color. See this chapter for "GPU Gems 3" for details:
     // https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-24-importance-being-linear
-    Vec3& Linearize()
+    Vec3& linearize()
     {
         static const float LINEARIZE = 2.2f;
         m_val[0] = pow(m_val[0], LINEARIZE);
@@ -48,7 +48,7 @@ public:
     // NOTE: Colors computed in rendering (linearized) should be gamma corrected immediately before
     // display or saving to most image file formats. Gamma correction has the effect of darkening
     // the color.
-    Vec3& GammaCorrect()
+    Vec3& gammaCorrect()
     {
         static const float GAMMA = 1 / 2.2f;
         m_val[0] = pow(m_val[0], GAMMA);
@@ -58,7 +58,7 @@ public:
     }
 
 private:
-    float m_val[3] = { 0.0f, 0.0f, 0.0f };
+    float m_val[3];
 };
 
 // Computes the dot product of two vectors.

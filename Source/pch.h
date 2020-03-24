@@ -14,7 +14,13 @@
 #include <random>
 #include <string>
 #include <vector>
-using namespace std;
 
-// Float version of pi, to avoid casts where it is needed.
-const float M_PI_F = static_cast<float>(M_PI);
+// Make certain names from the std namespace accessible.
+using std::make_shared;
+using std::shared_ptr;
+using std::string;
+using std::vector;
+
+// Math constants.
+const float PI = static_cast<float>(M_PI);
+const float INF = std::numeric_limits<float>::infinity();

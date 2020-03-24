@@ -18,7 +18,7 @@ class Element
 public:
     // Intersects the ray with the element, returns whether an intersection was found. If so, the
     // hit value is update with properties of the intersection.
-    virtual bool Intersect(const Ray& ray, Hit& hit) const = 0;
+    virtual bool intersect(const Ray& ray, Hit& hit) const = 0;
 };
 
 // A scene consisting of multiple elements suitable for rendering.
@@ -26,18 +26,18 @@ class Scene : public Element
 {
 public:
     // Adds an element to the scene.
-    void Add(shared_ptr<Element> pElement)
+    void add(shared_ptr<Element> pElement)
     {
         m_elements.push_back(pElement);
     }
 
     // Overrides Element.Intersect().
-    virtual bool Intersect(const Ray& ray, Hit& hit) const override
+    virtual bool intersect(const Ray& ray, Hit& hit) const override
     {
         // Initialize the closest hit with the rays TMax value.
         bool anyHit = false;
         Hit closestHit;
-        closestHit.t = ray.TMax();
+        closestHit.t = ray.tMax();
 
         // Iterate the elements, finding the closest intersection with the ray.
         for (auto element : m_elements)
@@ -45,7 +45,7 @@ public:
             // If the ray intersects the element, and the hit is closer that the closest one so far,
             // record it as the closest hit.
             Hit nextHit;
-            if (element->Intersect(ray, nextHit) && nextHit.t < closestHit.t)
+            if (element->intersect(ray, nextHit) && nextHit.t < closestHit.t)
             {
                 anyHit = true;
                 closestHit = nextHit;
@@ -55,7 +55,7 @@ public:
         // If there was a hit, record that for the caller.
         if (anyHit)
         {
-            assert(closestHit.t <= ray.TMax());
+            assert(closestHit.t <= ray.tMax());
             hit = closestHit;
         }
 

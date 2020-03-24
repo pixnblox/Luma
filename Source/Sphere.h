@@ -14,14 +14,14 @@ public:
     Sphere(const Vec3& center, float radius) : m_center(center), m_radius(radius) {}
 
     // Override's Element.Intersect().
-    virtual bool Intersect(const Ray& ray, Hit& hit) const override
+    virtual bool intersect(const Ray& ray, Hit& hit) const override
     {
         // Compute the components needed to solve the quadratic equation, using the quadratic
         // formula: (-b ± √(b² - 4ac)) / 2a.
         // NOTE: Search online for "ray sphere intersection" for a complete derivation.
-        Vec3 delta = ray.Origin() - m_center;
-        float a = dot(ray.Direction(), ray.Direction());
-        float b = 2.0f * dot(ray.Direction(), delta);
+        Vec3 delta = ray.origin() - m_center;
+        float a = dot(ray.direction(), ray.direction());
+        float b = 2.0f * dot(ray.direction(), delta);
         float c = dot(delta, delta) - m_radius * m_radius;
 
         // Compute the discriminant. If the value is less than zero, then a square root is not
@@ -37,14 +37,14 @@ public:
         // value, try the farther possible intersection point (higher t). If this is still not in
         // the ray bounds, return false.
         float t = (-b - sqrt(discriminant)) / (2.0f * a);
-        if (t > ray.TMax())
+        if (t > ray.tMax())
         {
             return false;
         }
-        if (t < ray.TMin())
+        else if (t < ray.tMin())
         {
             t = (-b + sqrt(discriminant)) / (2.0f * a);
-            if (t < ray.TMin() || t > ray.TMax())
+            if (t < ray.tMin() || t > ray.tMax())
             {
                 return false;
             }
@@ -53,7 +53,7 @@ public:
         // The sphere was hit, so update the hit record with the t parameter, hit position, and
         // (normalized) normal at the hit position.
         hit.t = t;
-        hit.position = ray.At(t);
+        hit.position = ray.at(t);
         hit.normal = (hit.position - m_center) / m_radius;
 
         return true;

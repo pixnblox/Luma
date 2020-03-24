@@ -14,7 +14,7 @@ public:
 
     // Computes a ray from the camera with the specified U (horizontal) and V (vertical) offsets in
     // the camera image plane.
-    Ray GetRay(float u, float v) const
+    Ray getRay(float u, float v) const
     {
         // Define the camera with an eye position at the origin, and facing the -Z axis.
         // TODO: The camera is currently hardcoded, but will later support standard properties.
@@ -28,7 +28,7 @@ public:
             start.x() + u * viewWidth,
             start.y() + v * viewHeight,
             start.z());
-        direction.Normalize();
+        direction.normalize();
         
         // Return a ray with the direction and the camera's origin.
         return Ray(origin, direction);

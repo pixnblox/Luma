@@ -24,11 +24,11 @@ public:
     }
 
     // Returns the image data buffer.
-    uint8_t* GetImageData() { return m_pImageData; }
+    uint8_t* getImageData() { return m_pImageData; }
 
     // Saves the image as a PNG file to the specified path, with an optional scale to enlarge the
     // image.
-    void SavePNG(string sFilePath, uint8_t scale = 1)
+    void savePNG(string sFilePath, uint8_t scale = 1)
     {
         uint8_t* pImageData = m_pImageData;
         uint16_t width = m_width;
@@ -37,7 +37,7 @@ public:
         // Resize the image by the specified scale if one is specified.
         if (scale > 1)
         {
-            pImageData = ScaleImage(scale);
+            pImageData = scaleImage(scale);
             width *= scale;
             height *= scale;
         }
@@ -61,7 +61,7 @@ private:
     uint16_t m_height;
 
     // Scales (enlarges) an image buffer by the specified scale factor, returning a new buffer.
-    uint8_t* ScaleImage(uint8_t scale)
+    uint8_t* scaleImage(uint8_t scale)
     {
         // Create the destination buffer, as a multiple of the source buffer, e.g. 240x135 with a
         // scale of 8 becomes 1920x1080.

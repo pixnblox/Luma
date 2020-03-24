@@ -10,7 +10,7 @@
 using namespace Luma;
 
 // Computes the radiance incident along the specified ray, for the specified element.
-Vec3 Radiance(const Ray& ray, const Element& element, int depth)
+Vec3 radiance(const Ray& ray, const Element& element, int depth)
 {
     // If the trace depth has been exhausted, simply return black.
     if (depth == 0)
@@ -22,49 +22,55 @@ Vec3 Radiance(const Ray& ray, const Element& element, int depth)
     // intersection. Otherwise shade with a (vertical) background gradient.
     Vec3 radiance;
     Hit hit;
-    if (element.Intersect(ray, hit))
+    if (element.intersect(ray, hit))
     {
         // Generate a random direction in the hemisphere above the normal.
-        Vec3 direction = RandomDirection(hit.normal);
+        float pdf = 1.0f;
+        Vec3 direction = randomDirection(hit.normal, pdf);
         float cosTheta = dot(hit.normal, direction);
+        assert(cosTheta > 0.0f);
 
         // Compute the Lambertian BRDF, i.e. the amount of light reflected by the material.
-        static const Vec3 materialColor(Vec3(1.0f, 1.0f, 1.0f).Linearize());
-        Vec3 brdf = materialColor / M_PI_F;
+        static const Vec3 materialColor(Vec3(0.75f, 0.75f, 0.75f).linearize());
+        Vec3 brdf = materialColor / PI;
 
         // Compute the radiance incident from the direction, i.e. the incident light.
-        // NOTE: As this is recursive, this renders global illumination (bounced light) which is
+        // NOTE: As this is recursive, this renders global illumination (indirect light) which is
         // very difficult to achieve with rasterization on GPUs.
-        // NOTE: A ray offset is used to avoid self-intersection.
+        // NOTE: A small ray offset is used to avoid self-intersection.
         static const float RAY_OFFSET = 1e-4f;
         Ray ray(hit.position, direction, RAY_OFFSET);
-        Vec3 light = Radiance(ray, element, depth - 1);
+        Vec3 light = ::radiance(ray, element, depth - 1);
 
         // Compute the outgoing radiance, as defined by the rendering equation.
-        radiance = brdf * light * cosTheta;
+        radiance = brdf * light * cosTheta / pdf;
+
+        // DIRECT LIGHTING: Uncomment this to perform simple direct shading and shadowing with a
+        // directional light. As there is no random sampling, this will have no noise.
+        //
+        // Hit shadowHit;
+        // static const Vec3 lightDirection(Vec3(1.0f, 1.0f, 1.0f).Normalize());
+        // Ray shadowRay(hit.position, lightDirection, RAY_OFFSET);
+        // float visibility = element.Intersect(shadowRay, shadowHit) ? 0.1f : 1.0f;
+        // radiance = brdf * visibility * max(Dot(hit.normal, lightDirection), 0.0f);
 
         // AMBIENT OCCLUSION: Uncomment this to render ambient occlusion, i.e. the amount by which a
         // point can see the environment.
-        // radiance = element.Intersect(ray, hit) ? Vec3(0.0f, 0.0f, 0.0f) : Vec3(1.0f, 1.0f, 1.0f);
-
-        // DIRECT LIGHTING: Uncomment this to perform simple direct shading and shadowing with a
-        // directional light.
-        // Hit shadowHit;
-        // static const Vec3 lightDirection(Vec3(1.0f, 1.0f, 1.0f).Normalize());
-        // bool visible = element.Intersect(Ray(hit.position, lightDirection, RAY_OFFSET), shadowHit);
-        // radiance = materialColor * max(dot(hit.normal, lightDirection), 0.0f);
-        // radiance *= visible ? 0.1f : 1.0f;
+        //
+        // Vec3 visibility = element.Intersect(ray, hit) ? Vec3() : Vec3(1.0f, 1.0f, 1.0f);
+        // radiance = visibility * cosTheta / M_PI_F / pdf;
 
         // NORMALS: Uncomment this to render the surface normals as colors.
+        //
         // radiance = (0.5f * (hit.normal + Vec3(1.0f, 1.0f, 1.0f))).Linearize();
     }
     else
     {
-        static const Vec3 topColor(Vec3(0.5f, 0.7f, 1.0f).Linearize());
-        static const Vec3 bottomColor(Vec3(1.0f, 1.0f, 1.0f).Linearize());
+        static const Vec3 topColor(Vec3(0.5f, 0.7f, 1.0f).linearize());
+        static const Vec3 bottomColor(Vec3(1.0f, 1.0f, 1.0f).linearize());
 
-        float gradientFactor = (ray.Direction().y() + 1.0f) * 0.5f;
-        radiance = Lerp(bottomColor, topColor, gradientFactor);
+        float gradientFactor = (ray.direction().y() + 1.0f) * 0.5f;
+        radiance = lerp(bottomColor, topColor, gradientFactor);
     }
 
     return radiance;
@@ -72,17 +78,17 @@ Vec3 Radiance(const Ray& ray, const Element& element, int depth)
 
 // Computes the radiance for all the pixels in the image buffer with the specified properties, using
 // the specified element (scene) and camera.
-void Render(
+void render(
     const Element& element, const Camera& camera, uint8_t* pImageData,
     uint16_t width, uint16_t height, uint16_t samples)
 {
     // Report the rendering parameters.
-    cout
+    std::cout
         << "Rendering " << width << "x" << height
-        << " at " << samples << " samples per pixel..." << endl;
+        << " at " << samples << " samples per pixel..." << std::endl;
 
     // Record the start time.
-    auto startTime = chrono::high_resolution_clock::now();
+    auto startTime = std::chrono::high_resolution_clock::now();
     auto prevTime = startTime;
 
     // Iterate the image pixels, starting from the top left (U = 0.0, Y = 1.0) corner, and computing
@@ -98,50 +104,57 @@ void Render(
             {
                 // Compute the sample position, using a random offset for each sample.
                 // NOTE: If only one sample is being taken, use the pixel center.
-                float rand_x = samples == 1 ? 0.5f : Random();
-                float rand_y = samples == 1 ? 0.5f : Random();
+                float rand_x = samples == 1 ? 0.5f : random();
+                float rand_y = samples == 1 ? 0.5f : random();
                 float u = (x + rand_x) / width;
                 float v = (y - rand_y) / height;
 
                 // Compute a camera ray direction based on the current pixel's UV coordinates.
-                Ray ray = camera.GetRay(u, v);
+                Ray ray = camera.getRay(u, v);
 
                 // Compute a color for the ray, i.e. the scene radiance from that direction and add
                 // it to the accumulated radiance.
                 static const int MAX_DEPTH = 10;
-                radiance += ::Radiance(ray, element, MAX_DEPTH);
+                radiance += ::radiance(ray, element, MAX_DEPTH);
             }
 
             // Compute the average of the radiance samples to yield the pixel radiance.
             radiance /= samples;
 
             // Gamma correct the radiance and store it in the image buffer.
-            radiance.GammaCorrect();
+            radiance.gammaCorrect();
             const float COMPONENT_SCALE = 255.99f;
-            *pPixel++ = static_cast<uint8_t>(radiance.r() * COMPONENT_SCALE);
-            *pPixel++ = static_cast<uint8_t>(radiance.g() * COMPONENT_SCALE);
-            *pPixel++ = static_cast<uint8_t>(radiance.b() * COMPONENT_SCALE);
+            uint8_t color[] =
+            {
+                static_cast<uint8_t>(clamp(radiance.r(), 0.0f, 1.0f) * COMPONENT_SCALE),
+                static_cast<uint8_t>(clamp(radiance.g(), 0.0f, 1.0f) * COMPONENT_SCALE),
+                static_cast<uint8_t>(clamp(radiance.b(), 0.0f, 1.0f) * COMPONENT_SCALE),
+            };
+            ::memcpy(pPixel, color, 3);
+            pPixel += 3;
         }
 
         // Update the progress if more than one second has elapsed since the last update.
-        auto nextTime = chrono::high_resolution_clock::now();
-        auto elapsed = chrono::duration_cast<chrono::seconds>(nextTime - prevTime).count();
+        auto nextTime = std::chrono::high_resolution_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(nextTime - prevTime).count();
         if (elapsed >= 1)
         {
             float progress = static_cast<float>(height - y) / height;
-            UpdateProgress(progress);
+            updateProgress(progress);
             prevTime = nextTime;
         }
     }
 
     // Finish progress updates.
-    UpdateProgress(1.0f);
-    cout << endl;
+    updateProgress(1.0f);
+    std::cout << std::endl;
 
     // Report the image dimensions and time spent rendering.
-    auto endTime = chrono::high_resolution_clock::now();
-    auto elapsedTime = chrono::duration_cast<chrono::milliseconds>(endTime - startTime).count();
-    cout << setprecision(3) << "Completed in " << elapsedTime / 1000.0f << " seconds." << endl;
+    auto endTime = std::chrono::high_resolution_clock::now();
+    auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+    std::cout
+        << std::setprecision(3)
+        << "Completed in " << elapsedTime / 1000.0f << " seconds." << std::endl;
 }
 
 // Main entry point.
@@ -152,23 +165,23 @@ int main()
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
     // Create scene geometry.
-    auto pSphere = make_shared<Sphere>(Vec3(0.0f, 0.0f, -1.0f), 0.5f);
+    auto pCenter = make_shared<Sphere>(Vec3(0.0f, 0.0f, -1.0f), 0.5f);
     auto pGround = make_shared<Sphere>(Vec3(0.0f, -100.5f, -1.0f), 100.0f);
     Scene scene;
-    scene.Add(pSphere);
-    scene.Add(pGround);
+    scene.add(pCenter);
+    scene.add(pGround);
 
     // Create the output image.
     // NOTE: The image can be rendered at a lower resolution and scaled up to the desired image
     // size to make it easier to see the individual pixels and for faster rendering. The settings
-    // here take about 5 seconds to render with a Debug build, but only about 200 ms with a Release
+    // here take about 4 seconds to render with a Debug build, but only about 200 ms with a Release
     // build on a Core i7-8700 CPU.
-    static const uint8_t SCALE = 4;
+    static const uint8_t SCALE = 16;
     static const uint16_t OUTPUT_WIDTH = 3840;
     static const uint16_t OUTPUT_HEIGHT = 2160;
     static const uint16_t WIDTH = OUTPUT_WIDTH / SCALE;
     static const uint16_t HEIGHT = OUTPUT_HEIGHT / SCALE;
-    static const uint16_t SPP = 100;
+    static const uint16_t SPP = 16;
     Image image(WIDTH, HEIGHT);
 
     // Create a camera.
@@ -176,8 +189,8 @@ int main()
     Camera camera(static_cast<float>(WIDTH) / HEIGHT);
 
     // Render the scene with the camera, to the image buffer with the specified properties.
-    Render(scene, camera, image.GetImageData(), WIDTH, HEIGHT, SPP);
+    ::render(scene, camera, image.getImageData(), WIDTH, HEIGHT, SPP);
 
     // Save the image.
-    image.SavePNG("output.png", SCALE);
+    image.savePNG("output.png", SCALE);
 }
