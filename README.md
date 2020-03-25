@@ -9,4 +9,4 @@ This is written as a Visual Studio 2019 project. Just open the solution file, an
 Currently the code covers up to and including section 8 of _Ray Tracing in One Weekend_, "Diffuse Materials." It will render the image below (or one close to it, depending on settings).
 
 ![Sample Image](Doc/sample.png)
-_Rendered at 960x540 with 256 samples per pixel in 35 seconds on a Core i7-8700 CPU._
+_Rendered at 960x540 with 256 samples per pixel in 15 seconds on a Core i7-8700 CPU with 12 threads._

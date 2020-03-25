@@ -73,7 +73,7 @@ void updateProgress(float progress)
     {
         std::cout << (static_cast<float>(i) / PROGRESS_SIZE < progress ? "#" : " ");
     }
-    std::cout << "] " << static_cast<int>(progress * 100.0f) << "%\r";
+    std::cout << "] " << static_cast<int>(progress * 100.0f) << "%\r" << std::flush;
 }
 
 } // namespace Luma

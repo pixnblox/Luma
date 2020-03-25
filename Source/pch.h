@@ -3,6 +3,7 @@
 // STL headers.
 #define _USE_MATH_DEFINES
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <cfloat>
 #include <chrono>
@@ -11,8 +12,10 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <random>
 #include <string>
+#include <thread>
 #include <vector>
 
 // Make certain names from the std namespace accessible.

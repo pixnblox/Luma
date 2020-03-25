@@ -9,6 +9,8 @@
 #include "Utils.h"
 using namespace Luma;
 
+#include <ppl.h>
+
 // Computes the radiance incident along the specified ray, for the specified element.
 Vec3 radiance(const Ray& ray, const Element& element, int depth)
 {
@@ -83,19 +85,32 @@ void render(
     uint16_t width, uint16_t height, uint16_t samples)
 {
     // Report the rendering parameters.
+    unsigned int threadCount = std::thread::hardware_concurrency();
     std::cout
         << "Rendering " << width << "x" << height
-        << " at " << samples << " samples per pixel..." << std::endl;
+        << " at " << samples << " samples per pixel on "
+        << threadCount << " threads..." << std::endl;
 
     // Record the start time.
     auto startTime = std::chrono::high_resolution_clock::now();
     auto prevTime = startTime;
 
     // Iterate the image pixels, starting from the top left (U = 0.0, Y = 1.0) corner, and computing
-    // the incident radiance for each one.
-    uint8_t* pPixel = pImageData;
-    for (uint16_t y = height; y > 0; y--)
+    // the incident radiance for each one. A parallel for loop is used here to support thread
+    // concurrency.
+    // NOTE: Ray tracing is a naturally parallel process: there is no read / write contention for
+    // memory, with the exception of progress reporting.
+    static const uint8_t NUM_COMPONENTS = 3;
+    const size_t stride = width * NUM_COMPONENTS;
+    std::mutex progressMutex;
+    std::atomic<uint16_t> completedLines(0);
+    Concurrency::parallel_for(uint16_t(0), height, [&](uint16_t line)
     {
+        // Get a pointer to the start of the current line.
+        uint16_t y = height - line;
+        uint8_t* pPixel = pImageData + stride * line;
+
+        // Iterate the pixels of line, computing radiance for each one.
         for (uint16_t x = 0; x < width; x++)
         {
             // Accumulate radiance samples for each pixel.
@@ -134,19 +149,25 @@ void render(
             pPixel += 3;
         }
 
+        // Increment the (atomic) number of completed lines.
+        completedLines++;
+
         // Update the progress if more than one second has elapsed since the last update.
+        // NOTE: A mutex is used to avoid a race condition with multiple threads.
         auto nextTime = std::chrono::high_resolution_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(nextTime - prevTime).count();
         if (elapsed >= 1)
         {
-            float progress = static_cast<float>(height - y) / height;
-            updateProgress(progress);
+            progressMutex.lock();
+            float progress = static_cast<float>(completedLines) / height;
+            ::updateProgress(progress);
             prevTime = nextTime;
+            progressMutex.unlock();
         }
-    }
+    });
 
     // Finish progress updates.
-    updateProgress(1.0f);
+    ::updateProgress(1.0f);
     std::cout << std::endl;
 
     // Report the image dimensions and time spent rendering.
@@ -174,8 +195,8 @@ int main()
     // Create the output image.
     // NOTE: The image can be rendered at a lower resolution and scaled up to the desired image
     // size to make it easier to see the individual pixels and for faster rendering. The settings
-    // here take about 4 seconds to render with a Debug build, but only about 200 ms with a Release
-    // build on a Core i7-8700 CPU.
+    // here take about 4.2 seconds to render with a Debug build, but only about 400 ms with a
+    // Release build on a Core i7-8700 CPU with 12 threads.
     static const uint8_t SCALE = 16;
     static const uint16_t OUTPUT_WIDTH = 3840;
     static const uint16_t OUTPUT_HEIGHT = 2160;
