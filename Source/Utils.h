@@ -18,8 +18,72 @@ inline T clamp(T x, T min, T max)
     return x;
 }
 
-// Generates a uniformly distributed random number in the range [0.0, 1.0).
-float random()
+// Generates a random 32-bit integer from a seed value, using an LCG.
+//
+// NOTE: Based on http://www.reedbeta.com/blog/quick-and-easy-gpu-random-numbers-in-d3d11.
+uint32_t randomLCG(uint32_t seed)
+{
+    return 1664525 * seed + 1013904223;
+}
+
+// Generates a random 32-bit integer from a seed value, using XOR shifts.
+//
+// NOTE: Based on http://www.reedbeta.com/blog/quick-and-easy-gpu-random-numbers-in-d3d11.
+uint32_t randomXORShift(uint32_t x)
+{
+    x ^= (x << 13);
+    x ^= (x >> 17);
+    x ^= (x << 5);
+
+    return x;
+}
+
+// Hashes a 32-bit integer, which can be used to randomize a seed for an RNG, or directly as an RNG.
+//
+// NOTE: Based on http://www.reedbeta.com/blog/quick-and-easy-gpu-random-numbers-in-d3d11.
+uint32_t wangHash(uint32_t x)
+{
+    x = (x ^ 61) ^ (x >> 16);
+    x *= 9;
+    x ^= x >> 4;
+    x *= 0x27d4eb2d;
+    x ^= x >> 15;
+
+    return x;
+}
+
+// Computes the entry in the base 2 Halton sequence at the specified index.
+//
+// NOTE: Based on PBRT at https://github.com/mmp/pbrt-v3/blob/master/src/core/lowdiscrepancy.h.
+inline float halton2(uint32_t index)
+{
+    index = (index << 16) | (index >> 16);
+    index = ((index & 0x00ff00ff) << 8) | ((index & 0xff00ff00) >> 8);
+    index = ((index & 0x0f0f0f0f) << 4) | ((index & 0xf0f0f0f0) >> 4);
+    index = ((index & 0x33333333) << 2) | ((index & 0xcccccccc) >> 2);
+    index = ((index & 0x55555555) << 1) | ((index & 0xaaaaaaaa) >> 1);
+
+    return index * 1.0f / (1ull << 32);
+}
+
+// Computes the entry in the base 3 Halton sequence at the specified index.
+inline float halton3(uint32_t index)
+{
+    float result = 0.0f;
+    float scale = 1.0f;
+    while (index != 0)
+    {
+        scale /= 3;
+        result += (index % 3) * scale;
+        index /= 3;
+    }
+
+    return result;
+}
+
+// Generates a uniformly distributed pseudorandom random number in the range [0.0, 1.0) using the
+// Mersenne Twister. This gives very high quality numbers.
+float randomMT()
 {
     static std::mt19937 generator;
     static std::uniform_real_distribution<float> distribution;
@@ -28,14 +92,25 @@ float random()
     return func();
 }
 
+// Gets two uniformly distributed quasirandom numbers in the range [0.0, 1.0), using Halton (2,3)
+// sequences with the specified index. 
+//
+// NOTE: The use of *quasirandom* (low discrepancy) numbers can substantially improve the rate of
+// convergence for path tracing, compared to *pseudorandom* numbers. Try using MT nubmers here to
+// see the difference. See PBRT and https://en.wikipedia.org/wiki/Halton_sequence for more
+// information.
+inline void getRandom2D(float& u1, float& u2, uint32_t& index)
+{
+    u1 = randomMT();
+    u2 = randomMT();
+}
+
 // Generates a random direction in the cosine-weighted hemisphere above the specified normal. This
 // provides a PDF value ("probability density function") which is the *relative* probability that
 // the returned direction will be chosen.
-Vec3 randomDirection(const Vec3& normal, float& pdf)
+Vec3 randomDirection(float u1, float u2, const Vec3& normal, float& pdf)
 {
-    // Create a random uniformly distributed point on the unit sphere, i.e. a direction.
-    float u1 = random();
-    float u2 = random();
+    // Create a point on the unit sphere, i.e. a direction, from the uniform random variables.
     float cosTheta = 1.0f - 2.0f * u2;
     float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
     float phi = 2.0f * PI * u1;

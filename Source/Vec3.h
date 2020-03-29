@@ -32,10 +32,11 @@ public:
     Vec3& normalize() { *this /= length(); return *this; }
 
     // Linearizes the vector (as a color) in the sRGB color space.
+    //
     // NOTE: Colors should be linearized for rendering computations to work correctly. Linearization
     // has the effect of darkening the color. See this chapter for "GPU Gems 3" for details:
     // https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-24-importance-being-linear
-    Vec3& linearize()
+    Vec3& sRGBToLinear()
     {
         static const float LINEARIZE = 2.2f;
         m_val[0] = pow(m_val[0], LINEARIZE);
@@ -45,10 +46,11 @@ public:
     }
 
     // Gamma corrects the vector (as a color) in the sRGB color space.
+    //
     // NOTE: Colors computed in rendering (linearized) should be gamma corrected immediately before
     // display or saving to most image file formats. Gamma correction has the effect of darkening
     // the color.
-    Vec3& gammaCorrect()
+    Vec3& linearTosRGB()
     {
         static const float GAMMA = 1 / 2.2f;
         m_val[0] = pow(m_val[0], GAMMA);

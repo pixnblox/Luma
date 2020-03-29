@@ -18,6 +18,7 @@ public:
     {
         // Compute the components needed to solve the quadratic equation, using the quadratic
         // formula: (-b ± √(b² - 4ac)) / 2a.
+        //
         // NOTE: Search online for "ray sphere intersection" for a complete derivation.
         Vec3 delta = ray.origin() - m_center;
         float a = dot(ray.direction(), ray.direction());
