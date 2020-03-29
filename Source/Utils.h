@@ -92,7 +92,7 @@ float randomMT()
     return func();
 }
 
-// Gets two uniformly distributed quasirandom numbers in the range [0.0, 1.0), using Halton (2,3)
+// Get two uniformly distributed quasirandom numbers in the range [0.0, 1.0), using Halton (2,3)
 // sequences with the specified index. 
 //
 // NOTE: The use of *quasirandom* (low discrepancy) numbers can substantially improve the rate of
@@ -101,8 +101,8 @@ float randomMT()
 // information.
 inline void getRandom2D(float& u1, float& u2, uint32_t& index)
 {
-    u1 = randomMT();
-    u2 = randomMT();
+    u1 = halton2(index); // randomMT();
+    u2 = halton3(index); // randomMT();
 }
 
 // Generates a random direction in the cosine-weighted hemisphere above the specified normal. This
