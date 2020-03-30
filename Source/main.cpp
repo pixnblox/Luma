@@ -134,7 +134,7 @@ void render(
             // index is only incremented once, when the sample is complete.
             uint32_t sequenceIndex = 0;
             sequenceIndex = samples * (line * height + x);
-            sequenceIndex = wangHash(sequenceIndex);
+            sequenceIndex = lowBias32Hash(sequenceIndex);
 
             // Accumulate radiance samples for each pixel.
             Vec3 radiance;
@@ -228,9 +228,9 @@ int main()
     //
     // NOTE: The image can be rendered at a lower resolution and scaled up to the desired image
     // size to make it easier to see the individual pixels and for faster rendering. The settings
-    // here take about 4.2 seconds to render with a Debug build, but only about 400 ms with a
+    // here take about 2.1 seconds to render with a Debug build, but only about 300 ms with a
     // Release build on a Core i7-8700 CPU with 12 threads.
-    static const uint8_t SCALE = 16;
+    static const uint8_t SCALE = 8;
     static const uint16_t OUTPUT_WIDTH = 3840;
     static const uint16_t OUTPUT_HEIGHT = 2160;
     static const uint16_t WIDTH = OUTPUT_WIDTH / SCALE;

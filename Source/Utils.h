@@ -46,8 +46,22 @@ uint32_t wangHash(uint32_t x)
     x = (x ^ 61) ^ (x >> 16);
     x *= 9;
     x ^= x >> 4;
-    x *= 0x27d4eb2d;
+    x *= 0x27d4eb2dU;
     x ^= x >> 15;
+
+    return x;
+}
+
+// Hashes a 32-bit integer, which can be used to randomize a seed for an RNG, or directly as an RNG.
+//
+// NOTE: Based on https://nullprogram.com/blog/2018/07/31.
+uint32_t lowBias32Hash(uint32_t x)
+{
+    x ^= x >> 16;
+    x *= 0x7feb352dU;
+    x ^= x >> 15;
+    x *= 0x846ca68bU;
+    x ^= x >> 16;
 
     return x;
 }
